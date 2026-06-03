@@ -1,17 +1,39 @@
 import cv2
 import numpy as np
+import os
+from datetime import datetime
 
-cap = cv2.VideoCapture(0)
+# CCTV Video File
+VIDEO_PATH = "sample_cctv.mp4"
 
-fgbg = cv2.createBackgroundSubtractorMOG2()
+cap = cv2.VideoCapture(VIDEO_PATH)
+
+if not cap.isOpened():
+    print("Error: Cannot open video file.")
+    exit()
+
+fgbg = cv2.createBackgroundSubtractorMOG2(
+    history=500,
+    varThreshold=50,
+    detectShadows=False
+)
+
+os.makedirs("alerts", exist_ok=True)
 
 while True:
+
     ret, frame = cap.read()
 
     if not ret:
+        print("Video Processing Completed")
         break
 
     mask = fgbg.apply(frame)
+
+    kernel = np.ones((5, 5), np.uint8)
+
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    mask = cv2.dilate(mask, kernel, iterations=2)
 
     contours, _ = cv2.findContours(
         mask,
@@ -22,9 +44,11 @@ while True:
     suspicious = False
 
     for cnt in contours:
+
         area = cv2.contourArea(cnt)
 
-        if area > 5000:
+        if area > 3000:
+
             suspicious = True
 
             x, y, w, h = cv2.boundingRect(cnt)
@@ -34,7 +58,7 @@ while True:
                 (x, y),
                 (x + w, y + h),
                 (0, 0, 255),
-                2
+                3
             )
 
             cv2.putText(
@@ -48,6 +72,7 @@ while True:
             )
 
     if suspicious:
+
         cv2.putText(
             frame,
             "ALERT!",
@@ -58,9 +83,19 @@ while True:
             3
         )
 
-    cv2.imshow("AI Vision Shield", frame)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.imwrite(
+            f"alerts/alert_{timestamp}.jpg",
+            frame
+        )
+
+    cv2.imshow(
+        "AI Vision Shield - CCTV Detection",
+        frame
+    )
+
+    if cv2.waitKey(30) & 0xFF == ord('q'):
         break
 
 cap.release()
