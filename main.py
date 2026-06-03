@@ -3,8 +3,8 @@ import numpy as np
 import os
 from datetime import datetime
 
-# CCTV Video File
-VIDEO_PATH = "sample_cctv.mp4"
+# Your CCTV Video File
+VIDEO_PATH = "WhatsApp Video 2026-06-03 at 10.18.01 PM.mp4"
 
 cap = cv2.VideoCapture(VIDEO_PATH)
 
